@@ -118,7 +118,7 @@ EXIT STATUS
 *0*::
     Success
 
-*1*::
+*10*::
     Mindestens ein irreparabeler Fund 
 
 *20*::
