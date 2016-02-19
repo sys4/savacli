@@ -1,0 +1,811 @@
+#!/usr/bin/python
+#
+# savacli is a command-line client for Avira's anti-virus engine SAVAPI.
+#
+# Copyright (C) 2016 sys4 AG <https://sys4.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+#
+
+import os
+import sys
+import socket
+import ConfigParser
+import argparse
+import json
+import logging
+import logging.handlers
+
+from cStringIO import StringIO
+from email.Utils import formatdate
+from copy import copy
+
+NAME = "savacli"
+VERSION = "0.2.1"
+
+try:
+    import setproctitle
+    setproctitle.setproctitle(NAME)
+except:
+    pass
+
+__author__ = "Christian Roessner <cr@sys4.de>"
+__version__ = VERSION
+
+
+# Catch socket timeouts and exit
+def timeout(f):
+    def wrapper(*p, **kw):
+        try:
+            result = f(*p, **kw)
+        except socket.timeout:
+            print >> sys.stderr, "no response from server?"
+            sys.exit(1)
+        return result
+    return wrapper
+
+
+class Protocol(object):
+    @timeout
+    def __init__(self, scanner, verbose=False):
+        self.__scanner = scanner
+        self.__client = scanner.get_client()
+        self.__verbose = verbose
+
+        # Result items of a scanned file
+        self.__alerts = list()
+
+        # Which types should be scanned?
+        self.__detect_types = dict()
+
+        # Version information
+        self.__info = dict()
+
+        greeting = self.__client.recv(1024)
+        if verbose:
+            print greeting.strip()
+
+        # Provide the product id
+        response = self._send("SET PRODUCT " + str(scanner.get_product_id()))
+        if response is None:
+            sys.exit(1)
+
+        # Get list of current detect types
+        response = self._send("GET SELECTABLE_DETECT")
+        caps = response.split(":")[1]
+        caps = "".join(caps).split(",")
+        for cap in iter(caps):
+            response = self._send("GET DETECT_" + cap)
+            cap_flag = response.split(":")[1]
+            self.__detect_types[cap.lower()] = cap_flag
+
+        # Collect some version information
+        response = self._send("GET SAVAPI")
+        self.__info["product version"] = response.split(":")[1]
+
+        response = self._send("GET AVE")
+        self.__info["engine version"] = response.split(":")[1]
+
+        response = self._send("GET VDF")
+        self.__info["vdf version"] = response.split(":")[1]
+
+        response = self._send("GET VDF_SIGCOUNT")
+        self.__info["vdf signature count"] = response.split(":")[1]
+
+        response = self._send("GET EXPIRE")
+        date_raw = response.split(":")[1]
+        dy = date_raw[0:4]
+        dm = date_raw[4:6]
+        dd = date_raw[6:8]
+        self.__info["expire"] = dy + "-" + dm + "-" + dd
+
+        self.__info["date"] = formatdate(localtime=True)
+
+        # Activate some scanner modes
+        for toggle in ("SAVAPI_NOTIFY_REPAIR",
+                       "SAVAPI_NOTIFY_OFFICE",
+                       "SAVAPI_NOTIFY_OFFICE_MACRO"):
+            self._send("SET " + toggle + " 1")
+        self._send("SET SCAN_MODE ALL")
+
+        # Scan archives
+        self._send("SET ARCHIVE_SCAN 1")
+
+        # Mailbox scanning
+        self._send("SET MAILBOX_SCAN 1")
+
+    def _send(self, data):
+        self.__client.sendall(data + '\n')
+        response = self.__client.recv(1024).strip()
+        if self.__verbose:
+            print response
+
+        code = int(response[0:3])
+        if code == 350:
+            print >> sys.stderr, "Error: " + data
+            return None
+        elif code == 100:
+            return response
+        else:
+            return None
+
+    # NOTE: Currently unused method
+    @timeout
+    def change_detect_type(self, cap, cap_flag):
+        cap_flag = str(cap_flag)
+        response = self._send("SET DETECT_" + cap.upper() + " " + cap_flag)
+        if response is not None:
+            result = response.split(":")
+            # Changing a type was successfull
+            if len(result) == 2:
+                self.__detect_types[cap.lower()] = result[1]
+
+    def get_header(self):
+        return self.__info
+
+    @timeout
+    def scan(self, path):
+        self.__scanner.count_total()
+        self.__client.sendall("SCAN " + path + '\n')
+
+        # A terminal status code was found
+        terminate = False
+
+        log = False
+        if config.logclasses is not None:
+            logger = logging.getLogger("default")
+            log = True
+
+        # We need to fetch all data. Archives could produce large output
+        tmpdata = list()
+        while not terminate:
+            data = self.__client.recv(1024)
+            tmpdata.append(data)
+            if data.endswith('\n'):
+                result = "".join(tmpdata).strip()
+                if self.__verbose:
+                    print result
+
+                f = StringIO(result)
+                while not terminate:
+                    response = f.readline()
+                    if response == "":
+                        break
+
+                    parts = response.split()
+                    number, message = parts[0], " ".join(parts[1:])
+                    number = int(number)
+                    # File is clean
+                    if number == 200:
+                        self.__scanner.count_clean()
+                        if log:
+                            if "clean" in config.logclasses:
+                                logger.info("file=%s" % path)
+                        terminate = True
+                    # File is clean and is a (scanned) archive
+                    elif number == 210:
+                        self.__scanner.count_clean()
+                        if log:
+                            if "clean" in config.logclasses:
+                                logger.info("file=%s" % path)
+                        terminate = True
+                    # Timeout reached
+                    elif number == 220:
+                        logline = "file=%s timeout reached" % path
+                        print >> sys.stderr, logline
+                        if log:
+                            logger.error(logline)
+                        terminate = True
+                    # Alert found
+                    elif number == 310:
+                        self.__scanner.count_infected()
+                        alert_name, status, description = message.split(";")
+                        self.__alerts.append(
+                            dict(path=path,
+                                 alert_name=alert_name.strip(),
+                                 status=status.strip(),
+                                 description=description.strip()))
+                        if log:
+                            if "infected" in config.logclasses:
+                                logger.warn("file=%s type=%s "
+                                            "alert=[%s] desc=[%s]" % (
+                                            path,
+                                            status.strip(),
+                                            alert_name.strip(),
+                                            description.strip()))
+                        continue
+                    # SAVAPI is ready to proceed
+                    elif number == 319:
+                        terminate = True
+                    # File could not be opened
+                    elif number == 350 and message == "File open error":
+                        self.__scanner.count_not_scanned()
+                        logline = "file=%s unable to scan file" % path
+                        print >> sys.stderr, logline
+                        if log:
+                            if "error" in config.logclasses:
+                                logger.error(logline)
+                        terminate = True
+                    # Error occured
+                    elif number == 350:
+                        print >> sys.stderr, message
+                        terminate = True
+                    # Low-level alert information
+                    elif number == 401:
+                        continue
+                    # Infected file, but repairable
+                    elif number == 420:
+                        self.__scanner.count_infected()
+                        self.__scanner.count_repairable()
+                        alert_name, status, description = message.split(";")
+                        self.__alerts.append(
+                            dict(path=path,
+                                 alert_name=alert_name.strip(),
+                                 status=status.strip(),
+                                 description=description.strip()))
+                        if log:
+                            if "infected" in config.logclasses:
+                                logger.warn("file=%s type=%s "
+                                            "alert=[%s] desc=[%s]" % (
+                                            path,
+                                            status.strip(),
+                                            alert_name.strip(),
+                                            description.strip()))
+                        continue
+                    # Office-document
+                    elif number == 421:
+                        continue
+                    # Office-document with macros
+                    elif number == 422:
+                        continue
+                    # URL with detailed information
+                    elif number == 430:
+                        continue
+                    # Infected IFRAME
+                    elif number == 440:
+                        terminate = True
+                    # Plugin response
+                    elif number == 450:
+                        print message
+                        continue
+                    # Information
+                    elif number == 499:
+                        print message
+                        continue
+
+                f.close()
+                del f
+
+                # Clear list for next data blobs
+                tmpdata = list()
+
+    def result(self):
+        result = self.__alerts
+
+        # Reset states for next scan
+        self.__alerts = list()
+
+        return result if result != [] else None
+
+    def finish(self):        
+        self.__client.sendall("QUIT" + '\n')
+
+
+class Scanner(object):
+    def __init__(self, verbose=False):
+        err = False
+        socket.setdefaulttimeout(300.0)
+
+        if config.socket.startswith("unix:"):
+            path = config.socket.split(":")
+            if len(path) == 2:
+                if os.path.exists(path[1]):
+                    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    try:
+                        client.connect(path[1])
+                    except:
+                        err = True
+                    self.__client = client
+                else:
+                    err = True
+            else:
+                err = True
+        elif config.socket.startswith("inet:") or \
+             config.socket.startswith("inet6:"):
+            tcp = config.socket.split(":")
+            if len(tcp) == 2:
+                tcp_port_addr = tcp[1].split("@")
+                if len(tcp_port_addr) == 2:
+                    port = tcp_port_addr[0]
+                    addr = tcp_port_addr[1]
+                else:
+                    err = True
+            else:
+                err = True
+
+            if not err:
+                if config.socket.startswith("inet:"):
+                    family=socket.AF_INET
+                elif config.socket.startswith("inet6:"):
+                    family=socket.AF_INET6
+                client = socket.socket(family, socket.SOCK_STREAM)
+                try:
+                    # FIXME: We do not support flowinfo, scopeid yet!
+                    client.connect((addr, port))
+                except:
+                    err = True
+
+        if err:
+            print >> sys.stderr, "Unable to connect: " + config.socket
+            sys.exit(1)
+
+        self.set_product_id(config.product_id)
+        self.__proto = Protocol(self, verbose)
+
+        # Counter for infected and clean file(s)
+        self.__total = 0
+        self.__infected = 0
+        self.__repairable = 0
+        self.__clean = 0
+        self.__not_scanned = 0
+
+    def scan(self, path):
+        self.__proto.scan(path)
+
+    def scan_result(self):
+        return self.__proto.result()
+
+    def report_header(self):
+        return self.__proto.get_header()
+
+    def report_summary(self):
+        info = dict(total=self.__total,
+                    clean=self.__clean,
+                    infected=self.__infected,
+                    repairable=self.__repairable)
+        info["not scanned"] = self.__not_scanned
+
+        return info
+
+    def close(self):
+        self.__proto.finish()
+        self.__client.close()
+
+    def get_client(self):
+        return self.__client
+
+    def set_product_id(self, prod_id):
+        self.__prod_id = prod_id
+
+    def get_product_id(self):
+        return self.__prod_id
+
+    def count_total(self):
+        self.__total += 1
+
+    def count_clean(self):
+        self.__clean += 1
+
+    def count_infected(self):
+        self.__infected += 1
+
+    def count_repairable(self):
+        self.__repairable += 1
+
+    def count_not_scanned(self):
+        self.__not_scanned += 1
+
+    def exit(self):
+        if self.__infected > 0 and self.__repairable == 0:
+            return 10
+        if self.__infected > 0 and self.__repairable > 0:
+            return 20
+
+        return 0
+
+
+class Config(ConfigParser.RawConfigParser):
+    def __init__(self, args):
+        ConfigParser.RawConfigParser.__init__(self)
+
+        # Default configuration parameters
+        self.product_id = None
+        self.socket = None
+        self.logfile = None
+        self.logclasses = set()
+        self.reportformat = "plain"
+        self.excludefiles = None
+        self.excludedirectories = None
+        #
+        self.local = False
+        self.reportheader = False
+        self.reportsummary = False
+
+        err = False
+
+        if os.path.exists(args.config):
+            try:
+                self.read(args.config)
+            except ConfigParser.MissingSectionHeaderError:
+                print >> sys.stderr, "No section headers found"
+                err = True
+        else:
+            print >> sys.stderr, "Config file not found " + args.config
+            err = True
+
+        if not err:
+            try:
+                # Mandatory option
+                self.product_id = self.getint("savacli", "ProductId")
+            except ConfigParser.NoSectionError, section:
+                print >> sys.stderr, section
+                err = True
+            except ConfigParser.NoOptionError, option:
+                print >> sys.stderr, option
+                err = True
+            except ValueError, value:
+                print >> sys.stderr, "Value for ProductId: " + value
+                err = True
+
+            string_opts = ["Socket",
+                           "LogFile",
+                           "LogClasses",
+                           "ReportFormat",
+                           "ExcludeFiles",
+                           "ExcludeDirectories"]
+
+            if args.socket is not None:
+                self.socket = args.socket
+                string_opts.remove("Socket")
+            if args.logfile is not None:
+                self.logfile = args.logfile
+                string_opts.remove("LogFile")
+            if args.excludefiles is not None:
+                self.excludefiles = args.excludefiles
+                string_opts.remove("ExcludeFiles")
+            if args.excludedirectories is not None:
+                self.excludedirectories = args.excludedirectories
+                string_opts.remove("ExcludeDirectories")
+
+            # Optional string options
+            for option in string_opts:
+                try:
+                    result = self.get("savacli", option)
+                    if option == "Socket":
+                        self.socket = result
+                    elif option == "LogFile":
+                        if result.lower() == "none":
+                            self.logfile = None
+                        else:
+                            self.logfile = result
+                    elif option == "LogClasses":
+                        raw_options = result.split()
+                        if "clean" in raw_options:
+                            self.logclasses.add("clean")
+                        if "infected" in raw_options:
+                            self.logclasses.add("infected")
+                        if "error" in raw_options:
+                            self.logclasses.add("error")
+                        if "all" in raw_options:
+                            self.logclasses = set(["clean",
+                                                   "infected",
+                                                   "error"])
+                        if len(self.logclasses) == 0:
+                            self.logfile = None
+                            self.logclasses = None
+                    elif option == "ReportFormat":
+                        if result == "plain":
+                            self.reportformat = "plain"
+                        elif result == "json":
+                            self.reportformat = "json"
+                    elif option == "ExcludeFiles":
+                        # FIXME: Whitespace in file names
+                        self.excludefiles = [
+                            f.strip() for f in result.split()]
+                    elif option == "ExcludeDirectories":
+                        # FIXME: Whitespace in directory names
+                        self.excludedirectories = [
+                            d.strip() for d in result.split()]
+                except ConfigParser.NoOptionError, option:
+                    pass
+
+            bool_opts = ["Local", "ReportHeader", "ReportSummary"]
+
+            if args.local is not None:
+                self.local = args.local
+                bool_opts.remove("Local")
+            if args.reportheader is not None:
+                self.reportheader = args.reportheader
+                bool_opts.remove("ReportHeader")
+            if args.reportsummary is not None:
+                self.reportsummary = args.reportsummary
+                bool_opts.remove("ReportSummary")
+
+            # Optional boolean options
+            for option in bool_opts:
+                try:
+                    result = self.get("savacli", option)
+                    if result.lower() in ("yes", "true", "1", "on"):
+                        result = True
+                    elif result.lower() in ("no", "false", "0", "off"):
+                        result = False
+                    else:
+                        result = None
+                    if result is not None:
+                        if option == "Local":
+                            self.local = result
+                        elif option == "ReportHeader":
+                            self.reportheader = result
+                        elif option == "ReportSummary":
+                            self.reportsummary = result
+                except ConfigParser.NoOptionError:
+                    pass
+
+        if err:
+            sys.exit(1)
+
+        if self.socket is None:
+            print "Neither command line parameter --socket|-s "\
+                  "nor config option Socket given"
+            sys.exit(1)
+
+        if self.local:
+            if self.excludefiles is not None:
+                ef = copy(self.excludefiles)
+                for f in iter(ef):
+                    if not os.path.exists(f):
+                        self.excludefiles.remove(f)
+                    else:
+                        if not os.path.isfile(f):
+                            self.excludefiles.remove(f)
+            else:
+                self.excludefiles = list()
+
+            if self.excludedirectories is not None:
+                ed = copy(self.excludedirectories)
+                for d in iter(ed):
+                    if not os.path.exists(d):
+                        self.excludedirectories.remove(d)
+                    else:
+                        if not os.path.isdir(d):
+                            self.excludedirectories.remove(d)
+            else:
+                self.excludedirectories = list()
+        else:
+            self.excludefiles = list()
+            self.excludedirectories = list()
+
+
+class ScanRecursiveList(object):
+    def __init__(self, path):
+        self.__path = path
+
+    def __iter__(self):
+        for root, directories, files in os.walk(self.__path):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                yield filepath
+
+
+if __name__ == "__main__":
+    global config
+
+    parser = argparse.ArgumentParser(epilog=NAME + " SAVAPI command line scanner")
+
+    parser.add_argument("--config",
+                        "-c",
+                        default="/etc/savacli.cfg",
+                        type=str,
+                        help="load configuration options from this file")
+    parser.add_argument("--logfile",
+                        "-L",
+                        default=None,
+                        type=str,
+                        help="to enable logging, specify a log file")
+    parser.add_argument("--input",
+                        "-i",
+                        required=True,
+                        type=str,
+                        nargs="+",
+                        help="give a file or a directory to scan")
+    parser.add_argument("--local",
+                        "-l",
+                        default=None,
+                        action="store_true",
+                        help="scanner and scanned files run on the same machine")
+    parser.add_argument("--recursive",
+                        "-r",
+                        default=False,
+                        action="store_true",
+                        help="if input is a directory, scan recursively")
+    parser.add_argument("--socket",
+                        "-s",
+                        type=str,
+                        help="SAVAPI socket")
+    parser.add_argument("--reportheader",
+                        "-H",
+                        action="store_true",
+                        default=None,
+                        help="report global runtime statistics")
+    parser.add_argument("--reportsummary",
+                        "-S",
+                        action="store_true",
+                        default=None,
+                        help="output summary statistics")
+    parser.add_argument("--excludefiles",
+                        "-f",
+                        type=str,
+                        nargs="*",
+                        help="exclude files from being scanned")
+    parser.add_argument("--excludedirectories",
+                        "-d",
+                        type=str,
+                        nargs="*",
+                        help="exclude directories from being scanned")
+    parser.add_argument('--version',
+                        "-v",
+                        action='version',
+                        version='%(prog)s ' + VERSION)
+
+    args = parser.parse_args()
+
+    if os.path.exists(args.config):
+        config = Config(args)
+    else:
+        print "Unable to access config file", args.config
+        sys.exit(1)
+
+    # Prepare logging
+
+    if config.logfile is not None:
+        try:
+            logger = logging.getLogger('default')
+            logger.setLevel(logging.INFO)
+            log_handler = logging.handlers.WatchedFileHandler(config.logfile)
+            log_handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+            log_handler.setFormatter(formatter)
+            logger.addHandler(log_handler)
+        except Exception, e:
+            print >> sys.stderr, "Can not turn on logging: " + str(e)
+            config.logclasses = None
+    else:
+        config.logclasses = None
+
+    # Prepare data structre
+
+    scanner = Scanner(verbose=False)
+
+    # Output raw format for PLAIN, JSON and XML or other formats
+    out = dict()
+
+    if config.reportheader:
+        out["reportheader"] = scanner.report_header()
+
+    out["results"] = list()
+
+    if config.logclasses is not None:
+        logger.info("-" * 15 + " START " + "-" * 15)
+
+    # 1. File is not on the local disk
+    if not config.local:
+        for infile in iter(args.input):
+            scanner.scan(infile)
+            result = scanner.scan_result()
+            if result is not None:
+                out["results"].extend(result)
+    # 2. Scanner and files are on the same machine
+    else:
+        for infile in iter(args.input):
+            if os.path.isfile(infile):
+                if infile not in config.excludefiles:
+                    scanner.scan(infile)
+                    result = scanner.scan_result()
+                    if result is not None:
+                        out["results"].extend(result)
+            elif os.path.isdir(infile):
+                if args.recursive:
+                    recursive_dir = ScanRecursiveList(infile)
+                    for entry in iter(recursive_dir):
+                        entry_split = entry.split("/")[:-1]
+                        length_dir = len(entry_split)
+                        skip = False
+                        for excludedir in iter(config.excludedirectories):
+                            excludedir_split = excludedir.split("/")
+                            length_excludedir = len(excludedir_split)
+                            if length_excludedir <= length_dir:
+                                if entry_split[
+                                        :length_excludedir] == excludedir_split:
+                                    skip = True
+                                    break
+                        if skip:
+                            continue
+                        if entry in config.excludefiles:
+                            continue
+                        scanner.scan(entry)
+                        result = scanner.scan_result()
+                        if result is not None:
+                            out["results"].extend(result)
+                else:
+                    if infile not in config.excludedirectories:
+                        entries = os.listdir(infile)
+                        for entry in iter(entries):
+                            path = infile + "/" + entry
+                            if os.path.isfile(path):
+                                scanner.scan(path)
+                                result = scanner.scan_result()
+                                if result is not None:
+                                    out["results"].extend(result)
+
+    if config.reportsummary:
+        out["reportsummary"] = scanner.report_summary()
+
+    scanner.close()
+
+    if config.logclasses is not None:
+        logger.info("-" * 15 + " END " + "-" * 15)
+
+    # Display data structure
+
+    if config.reportformat == "plain":
+        if config.reportheader:
+            print "Global information:"
+            print "-------------------"
+
+            if "date" in out["reportheader"]:
+                print "date:", out["reportheader"]["date"]
+            if "product version" in out["reportheader"]:
+                print "product version:", out["reportheader"]["product version"]
+            if "engine version" in out["reportheader"]:
+                print "engine version:", out["reportheader"]["engine version"]
+            if "vdf version" in out["reportheader"]:
+                print "VDF version:", out["reportheader"]["vdf version"]
+            if "vdf signature count" in out["reportheader"]:
+                print "VDF signature count:", out["reportheader"]["vdf signature count"]
+            if "expire" in out["reportheader"]:
+                print "license expire:", out["reportheader"]["expire"]
+
+        if len(out["results"]) > 0:
+            if config.reportheader or config.reportsummary:
+                if config.reportheader:
+                    print
+                print "Scan results:"
+                print "-------------"
+            for alert in iter(out["results"]):
+                print "alert_name={alert_name} "\
+                      "type={status} "\
+                      "description={description} "\
+                      "file={path}".format(**alert)
+            if config.reportsummary:
+                print
+
+        if config.reportsummary:
+            if config.reportheader and len(out["results"]) == 0:
+                print
+            print "Summary:"
+            print "--------"
+
+            print "total:", out["reportsummary"]["total"]
+            print "clean:", out["reportsummary"]["clean"]
+            print "infected:", out["reportsummary"]["infected"]
+            print "repairable:", out["reportsummary"]["repairable"]
+            print "not scanned:", out["reportsummary"]["not scanned"]
+
+    elif config.reportformat == "json":
+        print json.dumps(out)
+
+    sys.exit(scanner.exit())
+
+# vim: nu ts=4 sw=4 expandtab

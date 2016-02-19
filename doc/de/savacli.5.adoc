@@ -1,0 +1,143 @@
+savacli(5)
+==========
+:doctype: manpage
+
+
+NAME
+----
+savacli - Untersucht Dateien und Verzeichnisse auf Schadsoftware
+
+
+SYNOPSIS
+--------
+*savacli* ['OPTIONS'] 'FILE' 'DIR'
+
+
+DESCRIPTION
+-----------
+savacli ist ein command line interface zur Avira SAVAPI scan engine. Es weist die SAVAPI an, bestimmte Scan-Operationen durchzuführen. Die Ergebnisse der Scan-Operationen berichtet savacli anschliessend. savacli ist auf diese drei Anwendungsfälle optimiert:
+
+    1. Scanne die ganze Platte ausser diese Dateien/Verzeichnisse
+
+    2. Scanne alle Dateien eines Verzeichnisses
+
+    3. Scanne diese eine Datei
+
+
+
+OPTIONS
+-------
+
++--config+, +-c+::
+    Nennt den absoluten Pfad zur Konfigurationsdatei, die das Scanverhalten von savacli festlegt. Die Konfigurationsdatei liegt per default unter +/etc/savapi/savacli.conf+. (Nur Kommandozeile)
+
+ExcludeDirectories, +--excludedirectories+, +-d+::
+    Eine whitespace separierte Liste mit einem oder mehreren absoluten Pfaden zu Verzeichnissen, die vom Scannen ausgenommen werden sollen.
+
+ExcludeFiles, +--excludefiles+, +-f+::
+    Eine whitespace separierte Liste mit einem oder mehreren absoluten Pfaden zu Dateien, die vom Scannen ausgenommen werden sollen.
+
++--help+, +-h+::
+    Ruft die Command Line Hilfe auf und nennt eine Liste aller verfügbaren Optionen. (Nur Kommandozeile)
+
++--input+, +-i+::
+    Eine whitespace-separierte Liste eines oder mehrerer Verzeicnnisse oder Dateien, die savacli scannen sollen.
+
+Local +--local+, +-l+::
+    Legt fest, ob savacli und savapi-Daemon auf demselben Host laufen oder nicht:
+
+    Local = (1|0,True|False,on|off,yes|no)
+
+LogClasses, +--logclasses+, +-C+::
+    Bestimmt welche Art Funde der Client in einem Report aufführen soll. Mögliche Werte sind: +clean+, +infected+, +error+ und +all+. Die Werte werden space-separiert vergeben. Wird keine LogClass spezifiziert, deaktiviert savacli das Logging.
+
+    LogClasses = clean
+
+    Wenn der Client einen Fund einer Klasse meldet, dann nennt er Pfad, Klasse und ggf. konkreten Namen des Fundes:
+
+    /tmp/eicar.com, infected , Eicar Test-Pattern
+    /tmp/foo, clean
+
+LogFile +--logfile+, +-L+::
+    Der absolute Pfad zu einer Datei in die Logereignisse geschrieben werden sollen. Eine leere Angabe deaktiviert das Logging (Nur Konfigurationsdatei):
+
+    LogFile = /var/log/scan.log
+
+ProductId (mandatory)::
+    Die Product ID, die der Client beim Aufruf der Avira SAVAPI übergeben muss, damit diese für ihn tätig wird (Nur Konfigurationsdatei):
+    
+    ProductId = 12345
+
++--recursive+, +-r+::
+    Weist die savacli an, einen Pfad rekursive nach Dateien zu durchsuchen und diese zu scannen (Nur Kommandozeile).
+
+ReportFormat, +--reportformat+, +-F+::
+    Das Format in dem ein Report ausgegeben wird. Formate sind: +plain+, +json+.
+
+ReportHeader +--reportheader+, +-H+::
+    Legt fest, ob der Client zu Beginn eines Reports einen Summary der Rahmenbedingungen zu denen gescannt wird, ausgeben soll:
+    
+    ReportHeader = (1|0,True|False,on|off,yes|no)
+    
+    Beispiel für ein Summary in ReportFormat +plain+:
+    
+    date: Tue, 01 Dec 2015 15:41:12 +0100
+    product version: 3.5.1.65
+    engine version: 8.3.34.82
+    VDF version: 7.12.32.12
+    VDF signature count: 9512345
+    license expire: 2016-03-31
+
+ReportSummary, +--reportsummary+, +-S+::
+    Legt fest, ob der Client zu Beginn eines Reports einen Summary seiner Scan-Ergebnisse ausgeben soll:
+
+    ReportSummary = (1|0,True|False,on|off,yes|no)
+    
+    Beispiel für ein Summary in ReportFormat +plain+:
+
+    Summary:
+    --------
+    total: 9
+    clean: 0
+    infected: 8
+    not scanned: 5
+
+Socket, +--socket+, +-s+::
+    Der Ort, an der die savacli sich mit der savapi verbinden soll. Dies kann ein TCP-Socket (IPv4/IPv6) oder ein UNIX-Domain-Socket sein:
+
+    Socket = inet:127.0.0.1:4444
+    Socket = inet:[::1]:4444
+    Socket = unix:/var/run/savapi/savapi3
+
++--version+, +-v+::
+    Gibt die Versionsnummer der savacli aus.
+
+
+EXIT STATUS
+-----------
+*0*::
+    Success
+
+*1*::
+    Mindestens ein irreparabeler Fund 
+
+*20*::
+    Mindestens ein reparabeler Fund 
+
+
+BUGS
+----
+Bitte melden Sie bugs unter <https://github.com/sys4/savacli/issues>.
+
+
+AUTHOR
+------
+savacli wurde von Christian Roessner <cr@sys4.de> und Patrick Ben Koetter <p@sys4.de> entwickelt.
+
+
+RESOURCES
+---------
+project: <https://github.com/sys4/savacli>
+
+git: <git@github.com:sys4/savacli.git>
+

@@ -1,0 +1,141 @@
+savacli(5)
+==========
+:doctype: manpage
+
+
+NAME
+----
+savacli - Scans files and directories for malware
+
+
+SYNOPSIS
+--------
+*savacli* ['OPTIONS'] 'FILE' 'DIR'
+
+
+DESCRIPTION
+-----------
+savacli is a command-line client interfacing with Avira's SAVAPI scan engine. It instructs SAVAPI to execute specific scan operations and reports the SAVAPI output to the savacli user. It has been optimzed for the following use cases:
+
+    1. Scan the file system except for some files/directories
+
+    2. Scan all files within a given directory
+
+    3. Scan a file
+
+
+OPTIONS
+-------
+
++--config+, +-c+::
+    Provides the absolute path to the configuration file. The default location is +/etc/savapi/savacli.conf+. (Command-line only)
+
+ExcludeDirectories, +--excludedirectories+, +-d+::
+    Provides a whitespace separated list of one or more absolute paths to directories that should be excluded from scanning.
+
+ExcludeFiles, +--excludefiles+, +-f+::
+    Provides a whitespace separated list of one or more absolute paths to files that should be excluded from scanning.
+
++--help+, +-h+::
+    Invokes the command-line help and outputs a list of all available options. (Command-line only)
+
++--input+, +-i+::
+    Provides a whitespace separated list of one or more absolute paths to files or directories that should be scanned.
+
+Local +--local+, +-l+::
+    Sets if savacli and SAVAPI run on the same host:
+
+    Local = (1|0,True|False,on|off,yes|no)
+
+LogClasses, +--logclasses+, +-C+::
+    Sets the type of finding that should be reported by savacli. Possible values are: +clean+, +infected+, +error+ und +all+. Values must be given in a whitespace separated list. If no LogClass has been specified, savacli will disable the report.
+
+    LogClasses = clean
+
+    If savacli reports a finding, it will output path, class and possibly name of the finding:
+
+    /tmp/eicar.com, infected , Eicar Test-Pattern
+    /tmp/foo, clean
+
+LogFile +--logfile+, +-L+::
+    Provides the absolute path to a file where log events should be written to. An empty parameter will disable logging. (Configuration file only)
+
+    LogFile = /var/log/scan.log
+
+ProductId (mandatory)::
+    Provides the Product ID required to run commands within Avira SAVAPI. (Configuration file only)
+    
+    ProductId = 12345
+
++--recursive+, +-r+::
+    Instructs savacli to search and scan a path recursively for files. (Command-line only)
+
+ReportFormat, +--reportformat+, +-F+::
+    Sets the report format. Possible values are: +plain+ or +json+.
+
+ReportHeader +--reportheader+, +-H+::
+    Instructs savacli to output an optional application summary at the begin of its output.
+    
+    ReportHeader = (1|0,True|False,on|off,yes|no)
+    
+    Example of a +plain+ summary:
+    
+    date: Tue, 01 Dec 2015 15:41:12 +0100
+    product version: 3.5.1.65
+    engine version: 8.3.34.82
+    VDF version: 7.12.32.12
+    VDF signature count: 9512345
+    license expire: 2016-03-31
+
+ReportSummary, +--reportsummary+, +-S+::
+    Instructs savacli to output an optional findings summary at the begin of its output.
+
+    ReportSummary = (1|0,True|False,on|off,yes|no)
+    
+    Example of a +plain+ summary:
+
+    Summary:
+    --------
+    total: 9
+    clean: 0
+    infected: 8
+    not scanned: 5
+
+Socket, +--socket+, +-s+::
+    Sets the socket where savacli should interface with SAVAPI. The socket may be either a TCP socket (IPv4/IPv6) or a UNIX domain socket.
+
+    Socket = inet:127.0.0.1:4444
+    Socket = inet:[::1]:4444
+    Socket = unix:/var/run/savapi/savapi3
+
++--version+, +-v+::
+    Outputs the savacli version number.
+
+
+EXIT STATUS
+-----------
+*0*::
+    Success
+
+*1*::
+    At least one irreparable finding.
+
+*20*::
+    At least on reparable finding.
+
+
+BUGS
+----
+Please report bugs to <https://github.com/sys4/savacli/issues>.
+
+
+AUTHOR
+------
+savacli was written by Christian Roessner <cr@sys4.de> and Patrick Ben Koetter <p@sys4.de>.
+
+
+RESOURCES
+---------
+project: <https://github.com/sys4/savacli>
+
+git: <git@github.com:sys4/savacli.git>

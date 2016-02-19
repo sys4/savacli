@@ -1,0 +1,325 @@
+'\" t
+.\"     Title: savacli
+.\"    Author: [see the "AUTHOR" section]
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 02/11/2016
+.\"    Manual: \ \&
+.\"    Source: \ \&
+.\"  Language: English
+.\"
+.TH "SAVACLI" "5" "02/11/2016" "\ \&" "\ \&"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+savacli \- Scans files and directories for malware
+.SH "SYNOPSIS"
+.sp
+\fBsavacli\fR [\fIOPTIONS\fR] \fIFILE\fR \fIDIR\fR
+.SH "DESCRIPTION"
+.sp
+savacli is a command\-line client interfacing with Avira\(cqs SAVAPI scan engine\&. It instructs SAVAPI to execute specific scan operations and reports the SAVAPI output to the savacli user\&. It has been optimzed for the following use cases:
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 1.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  1." 4.2
+.\}
+Scan the file system except for some files/directories
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 2.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  2." 4.2
+.\}
+Scan all files within a given directory
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 3.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  3." 4.2
+.\}
+Scan a file
+.RE
+.SH "OPTIONS"
+.PP
+\-\-config, \-c
+.RS 4
+Provides the absolute path to the configuration file\&. The default location is
+/etc/savapi/savacli\&.conf\&. (Command\-line only)
+.RE
+.PP
+ExcludeDirectories, \-\-excludedirectories, \-d
+.RS 4
+Provides a whitespace separated list of one or more absolute paths to directories that should be excluded from scanning\&.
+.RE
+.PP
+ExcludeFiles, \-\-excludefiles, \-f
+.RS 4
+Provides a whitespace separated list of one or more absolute paths to files that should be excluded from scanning\&.
+.RE
+.PP
+\-\-help, \-h
+.RS 4
+Invokes the command\-line help and outputs a list of all available options\&. (Command\-line only)
+.RE
+.PP
+\-\-input, \-i
+.RS 4
+Provides a whitespace separated list of one or more absolute paths to files or directories that should be scanned\&.
+.RE
+.PP
+Local \-\-local, \-l
+.RS 4
+Sets if savacli and SAVAPI run on the same host:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+Local = (1|0,True|False,on|off,yes|no)
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+LogClasses, \-\-logclasses, \-C
+.RS 4
+Sets the type of finding that should be reported by savacli\&. Possible values are:
+clean,
+infected,
+error
+und
+all\&. Values must be given in a whitespace separated list\&. If no LogClass has been specified, savacli will disable the report\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+LogClasses = clean
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+If savacli reports a finding, it will output path, class and possibly name of the finding:
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+/tmp/eicar\&.com, infected , Eicar Test\-Pattern
+/tmp/foo, clean
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+LogFile \-\-logfile, \-L
+.RS 4
+Provides the absolute path to a file where log events should be written to\&. An empty parameter will disable logging\&. (Configuration file only)
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+LogFile = /var/log/scan\&.log
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+ProductId (mandatory)
+.RS 4
+Provides the Product ID required to run commands within Avira SAVAPI\&. (Configuration file only)
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+ProductId = 12345
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+\-\-recursive, \-r
+.RS 4
+Instructs savacli to search and scan a path recursively for files\&. (Command\-line only)
+.RE
+.PP
+ReportFormat, \-\-reportformat, \-F
+.RS 4
+Sets the report format\&. Possible values are:
+plain
+or
+json\&.
+.RE
+.PP
+ReportHeader \-\-reportheader, \-H
+.RS 4
+Instructs savacli to output an optional application summary at the begin of its output\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+ReportHeader = (1|0,True|False,on|off,yes|no)
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+Example of a +plain+ summary:
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+date: Tue, 01 Dec 2015 15:41:12 +0100
+product version: 3\&.5\&.1\&.65
+engine version: 8\&.3\&.34\&.82
+VDF version: 7\&.12\&.32\&.12
+VDF signature count: 9512345
+license expire: 2016\-03\-31
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+ReportSummary, \-\-reportsummary, \-S
+.RS 4
+Instructs savacli to output an optional findings summary at the begin of its output\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+ReportSummary = (1|0,True|False,on|off,yes|no)
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+Example of a +plain+ summary:
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+Summary:
+\-\-\-\-\-\-\-\-
+total: 9
+clean: 0
+infected: 8
+not scanned: 5
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+Socket, \-\-socket, \-s
+.RS 4
+Sets the socket where savacli should interface with SAVAPI\&. The socket may be either a TCP socket (IPv4/IPv6) or a UNIX domain socket\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+Socket = inet:127\&.0\&.0\&.1:4444
+Socket = inet:[::1]:4444
+Socket = unix:/var/run/savapi/savapi3
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+\-\-version, \-v
+.RS 4
+Outputs the savacli version number\&.
+.RE
+.SH "EXIT STATUS"
+.PP
+\fB0\fR
+.RS 4
+Success
+.RE
+.PP
+\fB1\fR
+.RS 4
+At least one irreparable finding\&.
+.RE
+.PP
+\fB20\fR
+.RS 4
+At least on reparable finding\&.
+.RE
+.SH "BUGS"
+.sp
+Please report bugs to https://github\&.com/sys4/savacli/issues\&.
+.SH "AUTHOR"
+.sp
+savacli was written by Christian Roessner <cr@sys4\&.de> and Patrick Ben Koetter <p@sys4\&.de>\&.
+.SH "RESOURCES"
+.sp
+project: https://github\&.com/sys4/savacli
+.sp
+git: <git@github\&.com:sys4/savacli\&.git>
