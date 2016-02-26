@@ -325,13 +325,23 @@ class Scanner(object):
         elif config.socket.startswith("inet:") or \
              config.socket.startswith("inet6:"):
             tcp = config.socket.split(":")
+
+# something like: Socket = inet:127.0.0.1:9900
+
             if len(tcp) == 2:
-                tcp_port_addr = tcp[1].split("@")
+                tcp_port_addr = tcp[1].split("@")  # '@' ? 
                 if len(tcp_port_addr) == 2:
                     port = tcp_port_addr[0]
                     addr = tcp_port_addr[1]
                 else:
                     err = True
+            elif len(tcp) == 3:
+                  try:
+                    port = int(tcp[2])
+                    addr = str(tcp[1])
+                  except Exception,e:
+                    err = True
+                    print "port - addr in Socket not resolved ",e
             else:
                 err = True
 
@@ -341,6 +351,7 @@ class Scanner(object):
                 elif config.socket.startswith("inet6:"):
                     family=socket.AF_INET6
                 client = socket.socket(family, socket.SOCK_STREAM)
+                self.__client = client
                 try:
                     # FIXME: We do not support flowinfo, scopeid yet!
                     client.connect((addr, port))
