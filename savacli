@@ -46,7 +46,7 @@ from builtins import bytes, dict, int, list, object, str
 
 
 NAME = "savacli"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 try:
     # noinspection PyUnresolvedReferences
@@ -536,7 +536,11 @@ class Config(MetaConfig):
                         else:
                             self.logfile = result
                     elif option == "LogClasses":
-                        raw_options = result.split()
+                        if "," in result:
+                            separator = ","
+                        else:
+                            separator = None
+                        raw_options = result.split(separator)
                         if "clean" in raw_options:
                             self.logclasses.add("clean")
                         if "infected" in raw_options:
@@ -554,13 +558,25 @@ class Config(MetaConfig):
                         elif result == "json":
                             self.reportformat = "json"
                     elif option == "ExcludeFiles":
-                        # FIXME: Whitespace in file names
-                        self.excludefiles = [
-                            f.strip() for f in result.split()]
+                        # JSON allows all forms of file and directory names
+                        if result.startswith("[") and result.endswith("]"):
+                            try:
+                                self.excludefiles = json.loads(result)
+                            except ValueError:
+                                self.excludefiles = None
+                        else:
+                            self.excludefiles = [
+                                f.strip() for f in result.split()]
                     elif option == "ExcludeDirectories":
-                        # FIXME: Whitespace in directory names
-                        self.excludedirectories = [
-                            d.strip() for d in result.split()]
+                        # JSON allows all forms of file and directory names
+                        if result.startswith("[") and result.endswith("]"):
+                            try:
+                                self.excludedirectories = json.loads(result)
+                            except ValueError:
+                                self.excludedirectories = None
+                        else:
+                            self.excludedirectories = [
+                                d.strip() for d in result.split()]
                 except ConfigParser.NoOptionError:
                     pass
 
@@ -813,19 +829,23 @@ def main():
             print("-------------------")
 
             if "date" in out["reportheader"]:
-                print("date:", out["reportheader"]["date"])
+                print("date: %s" % out["reportheader"]["date"])
             if "product version" in out["reportheader"]:
-                print(
-                    "product version:", out["reportheader"]["product version"])
+                print("product version: %s" %
+                      out["reportheader"]["product version"].decode("utf-8"))
             if "engine version" in out["reportheader"]:
-                print("engine version:", out["reportheader"]["engine version"])
+                print("engine version: %s" %
+                      out["reportheader"]["engine " "version"].decode("utf-8"))
             if "vdf version" in out["reportheader"]:
-                print("VDF version:", out["reportheader"]["vdf version"])
+                print("VDF version: %s" %
+                      out["reportheader"]["vdf version"].decode("utf-8"))
             if "vdf signature count" in out["reportheader"]:
-                print("VDF signature count:",
-                      out["reportheader"]["vdf signature count"])
+                print("VDF signature count: %s" %
+                      out["reportheader"]["vdf signature count"].decode(
+                          "utf-8"))
             if "expire" in out["reportheader"]:
-                print("license expire:", out["reportheader"]["expire"])
+                print("license expire: %s" %
+                      out["reportheader"]["expire"].decode("utf-8"))
 
         if len(out["results"]) > 0:
             if config.reportheader or config.reportsummary:
