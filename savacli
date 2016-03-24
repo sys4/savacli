@@ -562,7 +562,7 @@ class Config(configparser.RawConfigParser):
                         else:
                             self.excludedirectories = [
                                 d.strip() for d in result.split()]
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
 
             bool_opts = ["Local", "ReportHeader", "ReportSummary"]
