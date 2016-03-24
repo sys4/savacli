@@ -30,23 +30,18 @@ import argparse
 import json
 import logging
 import logging.handlers
-try:
-    # noinspection PyUnresolvedReferences
-    import ConfigParser
-except ImportError:
-    import configparser
+# noinspection PyCompatibility
+import configparser
 
-try:
-    from email.Utils import formatdate
-except ImportError:
-    from email.utils import formatdate
+from email.utils import formatdate
 from io import BytesIO
 from copy import copy
+# noinspection PyCompatibility
 from builtins import bytes, dict, int, list, object, str
 
 
 NAME = "savacli"
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 try:
     # noinspection PyUnresolvedReferences
@@ -450,20 +445,10 @@ class Scanner(object):
         return 0
 
 
-if sys.version_info < (3,):
-    class MetaConfig(object, ConfigParser.RawConfigParser):
-        def __init__(self):
-            ConfigParser.RawConfigParser.__init__(self)
-else:
-    class MetaConfig(configparser.RawConfigParser):
-        def __init__(self):
-            configparser.RawConfigParser.__init__(self)
-
-
-class Config(MetaConfig):
+class Config(configparser.RawConfigParser):
     # noinspection PyMissingConstructor
     def __init__(self, args):
-        MetaConfig.__init__(self)
+        configparser.RawConfigParser.__init__(self)
 
         # Default configuration parameters
         self.product_id = None
@@ -483,7 +468,7 @@ class Config(MetaConfig):
         if os.path.exists(args.config):
             try:
                 self.read(args.config)
-            except ConfigParser.MissingSectionHeaderError:
+            except configparser.MissingSectionHeaderError:
                 print("No section headers found", file=sys.stderr)
                 err = True
         else:
@@ -494,10 +479,10 @@ class Config(MetaConfig):
             try:
                 # Mandatory option
                 self.product_id = self.get("savacli", "ProductId")
-            except ConfigParser.NoSectionError as section:
+            except configparser.NoSectionError as section:
                 print(section, file=sys.stderr)
                 err = True
-            except ConfigParser.NoOptionError as option:
+            except configparser.NoOptionError as option:
                 print(option, file=sys.stderr)
                 err = True
             except ValueError as value:
@@ -609,7 +594,7 @@ class Config(MetaConfig):
                             self.reportheader = result
                         elif option == "ReportSummary":
                             self.reportsummary = result
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
 
         if err:
@@ -659,8 +644,6 @@ class ScanRecursiveList(object):
 
 
 def main():
-    global config
-
     parser = argparse.ArgumentParser(
         epilog=NAME + " SAVAPI command line scanner")
 
@@ -724,6 +707,7 @@ def main():
 
     if os.path.exists(args.config):
         config = Config(args)
+        global config
     else:
         print("Unable to access config file {}".format(args.config),
               file=sys.stderr)
