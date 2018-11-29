@@ -41,7 +41,7 @@ from builtins import bytes, dict, int, list, object, str
 
 
 NAME = "savacli"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 try:
     # noinspection PyUnresolvedReferences
