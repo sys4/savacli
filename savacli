@@ -90,7 +90,7 @@ class Protocol(object):
         # Provide the product id
         if sys.version_info < (3,):
             response = self._send(b"SET PRODUCT " + bytes(
-                scanner.get_product_id()))
+                scanner.get_product_id(), encoding="utf-8"))
         else:
             # noinspection PyArgumentList
             response = self._send(b"SET PRODUCT " + bytes(
