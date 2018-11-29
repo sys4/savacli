@@ -357,8 +357,8 @@ class Scanner(object):
             # noinspection PyBroadException
             try:
                 if len(tcp) >= 2:
-                    port = int(tcp[1].split("@")[0])
-                    addr = ":".join(tcp[1:]).split("@")[1]
+                    port = int(tcp[1].split("@")[1])
+                    addr = ":".join(tcp[1:]).split("@")[0]
 
                     if config.socket.startswith("inet:"):
                         family = socket.AF_INET
