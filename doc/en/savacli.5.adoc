@@ -104,8 +104,8 @@ ReportSummary, +--reportsummary+, +-S+::
 Socket, +--socket+, +-s+::
     Sets the socket where savacli should interface with SAVAPI. The socket may be either a TCP socket (IPv4/IPv6) or a UNIX domain socket.
 
-    Socket = inet:127.0.0.1:4444
-    Socket = inet6:[::1]:4444
+    Socket = inet:127.0.0.1@4444
+    Socket = inet6:[::1]@4444
     Socket = unix:/var/run/savapi/savapi3
 
 +--version+, +-v+::
