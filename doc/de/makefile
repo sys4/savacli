@@ -2,25 +2,28 @@
 # requeries "asciidoctor" (https://asciidoctor.org/) and
 # "asciidoctor-pdf" (https://asciidoctor.org/docs/asciidoctor-pdf/)
 #
-CONVERTER=asciidoctor
-PDFCONVERTER=asciidoctor-pdf
+CONVERTER    = asciidoctor
+PDFCONVERTER = asciidoctor-pdf
+
 
 all: html pdf manpage
 
-pdf: savacli.5.pdf
+.PHONY: clean pdf manpage html
 
 %.pdf: %.adoc
 		$(PDFCONVERTER) $<
 
-manpage: savacli.5
+pdf: savacli.5.pdf
 
-%.5: %.adoc
+%.5: %.5.adoc
 		$(CONVERTER) -b manpage $<
 
-html: savacli.5.html
+manpage: savacli.5
 
 %.html: %.adoc
 		$(CONVERTER) $<
+
+html: savacli.5.html
 
 clean:
 		rm -f *.html *.pdf *.5
