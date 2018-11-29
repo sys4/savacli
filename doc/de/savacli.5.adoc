@@ -65,7 +65,7 @@ LogFile +--logfile+, +-L+::
 
 ProductId (mandatory)::
     Die Product ID, die der Client beim Aufruf der Avira SAVAPI übergeben muss, damit diese für ihn tätig wird (Nur Konfigurationsdatei):
-    
+
     ProductId = 12345
 
 +--recursive+, +-r+::
@@ -76,11 +76,11 @@ ReportFormat, +--reportformat+, +-F+::
 
 ReportHeader +--reportheader+, +-H+::
     Legt fest, ob der Client zu Beginn eines Reports einen Summary der Rahmenbedingungen zu denen gescannt wird, ausgeben soll:
-    
+
     ReportHeader = (1|0,True|False,on|off,yes|no)
-    
+
     Beispiel für ein Summary in ReportFormat +plain+:
-    
+
     date: Tue, 01 Dec 2015 15:41:12 +0100
     product version: 3.5.1.65
     engine version: 8.3.34.82
@@ -92,7 +92,7 @@ ReportSummary, +--reportsummary+, +-S+::
     Legt fest, ob der Client zu Beginn eines Reports einen Summary seiner Scan-Ergebnisse ausgeben soll:
 
     ReportSummary = (1|0,True|False,on|off,yes|no)
-    
+
     Beispiel für ein Summary in ReportFormat +plain+:
 
     Summary:
@@ -105,8 +105,8 @@ ReportSummary, +--reportsummary+, +-S+::
 Socket, +--socket+, +-s+::
     Der Ort, an der die savacli sich mit der savapi verbinden soll. Dies kann ein TCP-Socket (IPv4/IPv6) oder ein UNIX-Domain-Socket sein:
 
-    Socket = inet:127.0.0.1:4444
-    Socket = inet:[::1]:4444
+    Socket = inet:127.0.0.1@4444
+    Socket = inet6:[::1]@4444
     Socket = unix:/var/run/savapi/savapi3
 
 +--version+, +-v+::
@@ -119,10 +119,10 @@ EXIT STATUS
     Success
 
 *10*::
-    Mindestens ein irreparabeler Fund 
+    Mindestens ein irreparabeler Fund
 
 *20*::
-    Mindestens ein reparabeler Fund 
+    Mindestens ein reparabeler Fund
 
 
 BUGS
@@ -140,4 +140,3 @@ RESOURCES
 project: <https://github.com/sys4/savacli>
 
 git: <git@github.com:sys4/savacli.git>
-

@@ -64,7 +64,7 @@ LogFile +--logfile+, +-L+::
 
 ProductId (mandatory)::
     Provides the Product ID required to run commands within Avira SAVAPI. (Configuration file only)
-    
+
     ProductId = 12345
 
 +--recursive+, +-r+::
@@ -75,11 +75,11 @@ ReportFormat, +--reportformat+, +-F+::
 
 ReportHeader +--reportheader+, +-H+::
     Instructs savacli to output an optional application summary at the begin of its output.
-    
+
     ReportHeader = (1|0,True|False,on|off,yes|no)
-    
+
     Example of a +plain+ summary:
-    
+
     date: Tue, 01 Dec 2015 15:41:12 +0100
     product version: 3.5.1.65
     engine version: 8.3.34.82
@@ -91,7 +91,7 @@ ReportSummary, +--reportsummary+, +-S+::
     Instructs savacli to output an optional findings summary at the begin of its output.
 
     ReportSummary = (1|0,True|False,on|off,yes|no)
-    
+
     Example of a +plain+ summary:
 
     Summary:
@@ -104,8 +104,8 @@ ReportSummary, +--reportsummary+, +-S+::
 Socket, +--socket+, +-s+::
     Sets the socket where savacli should interface with SAVAPI. The socket may be either a TCP socket (IPv4/IPv6) or a UNIX domain socket.
 
-    Socket = inet:127.0.0.1:4444
-    Socket = inet:[::1]:4444
+    Socket = inet:127.0.0.1@4444
+    Socket = inet6:[::1]@4444
     Socket = unix:/var/run/savapi/savapi3
 
 +--version+, +-v+::
