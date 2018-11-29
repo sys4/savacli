@@ -323,7 +323,7 @@ class Protocol(object):
 
         return result if result != [] else None
 
-    def finish(self):        
+    def finish(self):
         self.__client.sendall(b"QUIT\n")
 
 
@@ -678,7 +678,7 @@ def main():
 
     parser.add_argument("--config",
                         "-c",
-                        default="/etc/savapi/savacli.cfg",
+                        default="/etc/savapi/savacli.conf",
                         type=str,
                         help="load configuration options from this file")
     parser.add_argument("--logfile",
