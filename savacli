@@ -678,7 +678,7 @@ def main():
 
     parser.add_argument("--config",
                         "-c",
-                        default="/etc/savacli.cfg",
+                        default="/etc/savapi/savacli.cfg",
                         type=str,
                         help="load configuration options from this file")
     parser.add_argument("--logfile",
