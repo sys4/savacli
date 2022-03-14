@@ -235,7 +235,7 @@ class Protocol(object):
                     # Alert found
                     elif number == 310:
                         self.__scanner.count_infected()
-                        alert_name, status, description = message.split(";")
+                        alert_name, status, description = message.decode().split(";")
                         self.__alerts.append(
                             dict(path=path,
                                  alert_name=alert_name.strip(),
@@ -273,7 +273,7 @@ class Protocol(object):
                     elif number == 420:
                         self.__scanner.count_infected()
                         self.__scanner.count_repairable()
-                        alert_name, status, description = message.split(";")
+                        alert_name, status, description = message.decode().split(";")
                         self.__alerts.append(
                             dict(path=path,
                                  alert_name=alert_name.strip(),
