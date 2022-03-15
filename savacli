@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# savacli is a command-line client for Avira's anti-virus engine SAVAPI.
+# savacli is a command-line client for Avira's Anti-malware SDK (SAVAPI).
 #
-# Copyright (C) 2018 sys4 AG <https://sys4.de>
+# Copyright (C) 2022 sys4 AG <https://sys4.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

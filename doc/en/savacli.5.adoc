@@ -15,7 +15,7 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-savacli is a command-line client interfacing with Avira's SAVAPI scan engine. It instructs SAVAPI to execute specific scan operations and reports the SAVAPI output to the savacli user. It has been optimzed for the following use cases:
+savacli is a command-line client for Avira's Anti-malware SDK (SAVAPI). It instructs SAVAPI to execute specific scan operations and reports the SAVAPI output to the savacli user. It has been optimzed for the following use cases:
 
     1. Scan the file system except for some files/directories
 
@@ -63,7 +63,7 @@ LogFile +--logfile+, +-L+::
     LogFile = /var/log/scan.log
 
 ProductId (mandatory)::
-    Provides the Product ID required to run commands within Avira SAVAPI. (Configuration file only)
+    Provides the Product ID required to run commands within SAVAPI. (Configuration file only)
 
     ProductId = 12345
 

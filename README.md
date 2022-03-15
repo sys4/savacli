@@ -1,5 +1,5 @@
 # savacli
-savacli is a command-line client for Avira's anti-virus engine SAVAPI.
+savacli is a command-line client for Avira's Anti-malware SDK (SAVAPI).
 
 It interfaces with SAVAPI via TCP or UNIX domain socket and instructs SAVAPI to scan files and directories for malware. When SAVAPI has finished savacli reports the scan result.
 
