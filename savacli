@@ -88,13 +88,9 @@ class Protocol(object):
             print(greeting.strip())
 
         # Provide the product id
-        if sys.version_info < (3,):
-            response = self._send(b"SET PRODUCT " + bytes(
-                scanner.get_product_id(), encoding="utf-8"))
-        else:
-            # noinspection PyArgumentList
-            response = self._send(b"SET PRODUCT " + bytes(
-                scanner.get_product_id(), encoding="utf-8"))
+        # noinspection PyArgumentList
+        response = self._send(b"SET PRODUCT " + bytes(
+            scanner.get_product_id(), encoding="utf-8"))
         if response is None:
             sys.exit(1)
 
@@ -174,15 +170,10 @@ class Protocol(object):
     @timeout
     def scan(self, path):
         self.__scanner.count_total()
-        if sys.version_info < (3,):
-            self.__client.sendall(b"SCAN " +
-                                  bytes(path.encode("utf-8")) +
-                                  b'\n')
-        else:
-            # noinspection PyArgumentList
-            self.__client.sendall(b"SCAN " +
-                                  bytes(path, encoding="utf-8") +
-                                  b'\n')
+        # noinspection PyArgumentList
+        self.__client.sendall(b"SCAN " +
+                              bytes(path, encoding="utf-8") +
+                              b'\n')
 
         # A terminal status code was found
         terminate = False
