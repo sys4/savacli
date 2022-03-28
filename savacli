@@ -40,8 +40,8 @@ from copy import copy
 from builtins import bytes, dict, int, list, object, str
 
 
-NAME = "savacli"
-VERSION = "0.4.1"
+NAME = 'savacli'
+VERSION = '0.4.1'
 
 try:
     # noinspection PyUnresolvedReferences
@@ -51,7 +51,7 @@ except ImportError:
     pass
 
 
-__author__ = "Christian Roessner <cr@sys4.de>"
+__author__ = 'Christian Roessner <cr@sys4.de>'
 __version__ = VERSION
 
 
@@ -61,7 +61,7 @@ def timeout(f):
         try:
             result = f(*p, **kw)
         except socket.timeout:
-            print("no response from server?", file=sys.stderr)
+            print('no response from server?', file=sys.stderr)
             sys.exit(1)
         return result
     return wrapper
@@ -89,54 +89,54 @@ class Protocol(object):
 
         # Provide the product id
         # noinspection PyArgumentList
-        response = self._send(b"SET PRODUCT " + bytes(
-            scanner.get_product_id(), encoding="utf-8"))
+        response = self._send(b'SET PRODUCT ' + bytes(
+            scanner.get_product_id(), encoding='utf-8'))
         if response is None:
             sys.exit(1)
 
         # Get list of current detect types
-        response = self._send(b"GET SELECTABLE_DETECT")
-        caps = response.split(b":")[1]
-        caps = caps.split(b",")
+        response = self._send(b'GET SELECTABLE_DETECT')
+        caps = response.split(b':')[1]
+        caps = caps.split(b',')
         for cap in iter(caps):
-            response = self._send(b"GET DETECT_" + cap)
-            cap_flag = response.split(b":")[1]
+            response = self._send(b'GET DETECT_' + cap)
+            cap_flag = response.split(b':')[1]
             self.__detect_types[cap.lower()] = cap_flag
 
         # Collect some version information
-        response = self._send(b"GET SAVAPI")
-        self.__info["product version"] = response.split(b":")[1]
+        response = self._send(b'GET SAVAPI')
+        self.__info['product version'] = response.split(b':')[1]
 
-        response = self._send(b"GET AVE")
-        self.__info["engine version"] = response.split(b":")[1]
+        response = self._send(b'GET AVE')
+        self.__info['engine version'] = response.split(b':')[1]
 
-        response = self._send(b"GET VDF")
-        self.__info["vdf version"] = response.split(b":")[1]
+        response = self._send(b'GET VDF')
+        self.__info['vdf version'] = response.split(b':')[1]
 
-        response = self._send(b"GET VDF_SIGCOUNT")
-        self.__info["vdf signature count"] = response.split(b":")[1]
+        response = self._send(b'GET VDF_SIGCOUNT')
+        self.__info['vdf signature count'] = response.split(b':')[1]
 
-        response = self._send(b"GET EXPIRE")
-        date_raw = response.split(b":")[1]
+        response = self._send(b'GET EXPIRE')
+        date_raw = response.split(b':')[1]
         dy = date_raw[0:4]
         dm = date_raw[4:6]
         dd = date_raw[6:8]
-        self.__info["expire"] = dy + b"-" + dm + b"-" + dd
+        self.__info['expire'] = dy + b'-' + dm + b'-' + dd
 
-        self.__info["date"] = formatdate(localtime=True)
+        self.__info['date'] = formatdate(localtime=True)
 
         # Activate some scanner modes
-        for toggle in (b"SAVAPI_NOTIFY_REPAIR",
-                       b"SAVAPI_NOTIFY_OFFICE",
-                       b"SAVAPI_NOTIFY_OFFICE_MACRO"):
-            self._send(b"SET " + toggle + b" 1")
-        self._send(b"SET SCAN_MODE ALL")
+        for toggle in (b'SAVAPI_NOTIFY_REPAIR',
+                       b'SAVAPI_NOTIFY_OFFICE',
+                       b'SAVAPI_NOTIFY_OFFICE_MACRO'):
+            self._send(b'SET ' + toggle + b' 1')
+        self._send(b'SET SCAN_MODE ALL')
 
         # Scan archives
-        self._send(b"SET ARCHIVE_SCAN 1")
+        self._send(b'SET ARCHIVE_SCAN 1')
 
         # Mailbox scanning
-        self._send(b"SET MAILBOX_SCAN 1")
+        self._send(b'SET MAILBOX_SCAN 1')
 
     def _send(self, data):
         self.__client.sendall(data + b'\n')
@@ -146,7 +146,7 @@ class Protocol(object):
 
         code = int(response[0:3])
         if code == 350:
-            print("Error: {}".format(data), file=sys.stderr)
+            print('Error: {}'.format(data), file=sys.stderr)
             return None
         elif code == 100:
             return response
@@ -157,9 +157,9 @@ class Protocol(object):
     @timeout
     def change_detect_type(self, cap, cap_flag):
         cap_flag = str(cap_flag)
-        response = self._send(b"SET DETECT_" + cap.upper() + " " + cap_flag)
+        response = self._send(b'SET DETECT_' + cap.upper() + ' ' + cap_flag)
         if response:
-            result = response.split(":")
+            result = response.split(':')
             # Changing a type was successfull
             if len(result) == 2:
                 self.__detect_types[cap.lower()] = result[1]
@@ -171,8 +171,8 @@ class Protocol(object):
     def scan(self, path):
         self.__scanner.count_total()
         # noinspection PyArgumentList
-        self.__client.sendall(b"SCAN " +
-                              bytes(path, encoding="utf-8") +
+        self.__client.sendall(b'SCAN ' +
+                              bytes(path, encoding='utf-8') +
                               b'\n')
 
         # A terminal status code was found
@@ -180,7 +180,7 @@ class Protocol(object):
 
         log = False
         if config.logclasses:
-            logger = logging.getLogger("default")
+            logger = logging.getLogger('default')
             log = True
 
         # We need to fetch all data. Archives could produce large output
@@ -189,36 +189,36 @@ class Protocol(object):
             data = self.__client.recv(1024)
             tmpdata.append(data)
             if data.endswith(b'\n'):
-                result = b"".join(tmpdata).strip()
+                result = b''.join(tmpdata).strip()
                 if self.__verbose:
                     print(result)
 
                 f = BytesIO(result)
                 while not terminate:
                     response = f.readline()
-                    if response == b"":
+                    if response == b'':
                         break
 
                     parts = response.split()
-                    number, message = parts[0], b" ".join(parts[1:])
+                    number, message = parts[0], b' '.join(parts[1:])
                     number = int(number)
                     # File is clean
                     if number == 200:
                         self.__scanner.count_clean()
                         if log:
-                            if "clean" in config.logclasses:
-                                logger.info("file=%s" % path)
+                            if 'clean' in config.logclasses:
+                                logger.info('file=%s' % path)
                         terminate = True
                     # File is clean and is a (scanned) archive
                     elif number == 210:
                         self.__scanner.count_clean()
                         if log:
-                            if "clean" in config.logclasses:
-                                logger.info("file=%s" % path)
+                            if 'clean' in config.logclasses:
+                                logger.info('file=%s' % path)
                         terminate = True
                     # Timeout reached
                     elif number == 220:
-                        logline = "file=%s timeout reached" % path
+                        logline = 'file=%s timeout reached' % path
                         print(logline, file=sys.stderr)
                         if log:
                             logger.error(logline)
@@ -226,16 +226,16 @@ class Protocol(object):
                     # Alert found
                     elif number == 310:
                         self.__scanner.count_infected()
-                        alert_name, status, description = message.decode().split(";")
+                        alert_name, status, description = message.decode().split(';')
                         self.__alerts.append(
                             dict(path=path,
                                  alert_name=alert_name.strip(),
                                  status=status.strip(),
                                  description=description.strip()))
                         if log:
-                            if "infected" in config.logclasses:
-                                logger.warn("file=%s type=%s "
-                                            "alert=[%s] desc=[%s]" % (
+                            if 'infected' in config.logclasses:
+                                logger.warn('file=%s type=%s '
+                                            'alert=[%s] desc=[%s]' % (
                                                 path,
                                                 status.strip(),
                                                 alert_name.strip(),
@@ -245,12 +245,12 @@ class Protocol(object):
                     elif number == 319:
                         terminate = True
                     # File could not be opened
-                    elif number == 350 and message == b"File open error":
+                    elif number == 350 and message == b'File open error':
                         self.__scanner.count_not_scanned()
-                        logline = "file=%s unable to scan file" % path
+                        logline = 'file=%s unable to scan file' % path
                         print(logline, file=sys.stderr)
                         if log:
-                            if "error" in config.logclasses:
+                            if 'error' in config.logclasses:
                                 logger.error(logline)
                         terminate = True
                     # Error occured
@@ -264,16 +264,16 @@ class Protocol(object):
                     elif number == 420:
                         self.__scanner.count_infected()
                         self.__scanner.count_repairable()
-                        alert_name, status, description = message.decode().split(";")
+                        alert_name, status, description = message.decode().split(';')
                         self.__alerts.append(
                             dict(path=path,
                                  alert_name=alert_name.strip(),
                                  status=status.strip(),
                                  description=description.strip()))
                         if log:
-                            if "infected" in config.logclasses:
-                                logger.warn("file=%s type=%s "
-                                            "alert=[%s] desc=[%s]" % (
+                            if 'infected' in config.logclasses:
+                                logger.warn('file=%s type=%s '
+                                            'alert=[%s] desc=[%s]' % (
                                                 path,
                                                 status.strip(),
                                                 alert_name.strip(),
@@ -315,7 +315,7 @@ class Protocol(object):
         return result if result != [] else None
 
     def finish(self):
-        self.__client.sendall(b"QUIT\n")
+        self.__client.sendall(b'QUIT\n')
 
 
 class Scanner(object):
@@ -325,8 +325,8 @@ class Scanner(object):
         err = False
         socket.setdefaulttimeout(config.sockettimeout)
 
-        if config.socket.startswith("unix:"):
-            _path = config.socket.split(":")
+        if config.socket.startswith('unix:'):
+            _path = config.socket.split(':')
             if len(_path) == 2:
                 if os.path.exists(_path[1]):
                     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -340,20 +340,20 @@ class Scanner(object):
             else:
                 err = True
 
-        elif config.socket.startswith("inet:") or \
-                config.socket.startswith("inet6:"):
+        elif config.socket.startswith('inet:') or \
+                config.socket.startswith('inet6:'):
             family = None
 
-            tcp = config.socket.split(":")
+            tcp = config.socket.split(':')
             # noinspection PyBroadException
             try:
                 if len(tcp) >= 2:
-                    port = int(tcp[1].split("@")[1])
-                    addr = ":".join(tcp[1:]).split("@")[0]
+                    port = int(tcp[1].split('@')[1])
+                    addr = ':'.join(tcp[1:]).split('@')[0]
 
-                    if config.socket.startswith("inet:"):
+                    if config.socket.startswith('inet:'):
                         family = socket.AF_INET
-                    elif config.socket.startswith("inet6:"):
+                    elif config.socket.startswith('inet6:'):
                         family = socket.AF_INET6
 
                     client = socket.socket(family, socket.SOCK_STREAM)
@@ -369,7 +369,7 @@ class Scanner(object):
             err = True
 
         if err:
-            print("Unable to connect: {}".format(config.socket))
+            print('Unable to connect: {}'.format(config.socket))
             sys.exit(1)
 
         self.set_product_id(config.product_id)
@@ -396,7 +396,7 @@ class Scanner(object):
                     clean=self.__clean,
                     infected=self.__infected,
                     repairable=self.__repairable)
-        info["not scanned"] = self.__not_scanned
+        info['not scanned'] = self.__not_scanned
 
         return info
 
@@ -451,7 +451,7 @@ class Config(configparser.RawConfigParser):
         self.sockettimeout = 300.0
         self.logfile = None
         self.logclasses = set()
-        self.reportformat = "plain"
+        self.reportformat = 'plain'
         self.excludefiles = None
         self.excludedirectories = None
         #
@@ -465,16 +465,16 @@ class Config(configparser.RawConfigParser):
             try:
                 self.read(args.config)
             except configparser.MissingSectionHeaderError:
-                print("No section headers found", file=sys.stderr)
+                print('No section headers found', file=sys.stderr)
                 err = True
         else:
-            print("Config file not found {}".format(args.config))
+            print('Config file not found {}'.format(args.config))
             err = True
 
         if not err:
             try:
                 # Mandatory option
-                self.product_id = self.get("savacli", "ProductId")
+                self.product_id = self.get('savacli', 'ProductId')
             except configparser.NoSectionError as section:
                 print(section, file=sys.stderr)
                 err = True
@@ -482,75 +482,75 @@ class Config(configparser.RawConfigParser):
                 print(option, file=sys.stderr)
                 err = True
             except ValueError as value:
-                print("Value for ProductId: {}".format(value))
+                print('Value for ProductId: {}'.format(value))
                 err = True
 
-            string_opts = ["Socket",
-                           "LogFile",
-                           "LogClasses",
-                           "ReportFormat",
-                           "ExcludeFiles",
-                           "ExcludeDirectories",
-                           "SocketTimeout"]
+            string_opts = ['Socket',
+                           'LogFile',
+                           'LogClasses',
+                           'ReportFormat',
+                           'ExcludeFiles',
+                           'ExcludeDirectories',
+                           'SocketTimeout']
 
             if args.socket:
                 self.socket = args.socket
-                string_opts.remove("Socket")
+                string_opts.remove('Socket')
             if args.logfile:
                 self.logfile = args.logfile
-                string_opts.remove("LogFile")
+                string_opts.remove('LogFile')
             if args.excludefiles:
                 self.excludefiles = args.excludefiles
-                string_opts.remove("ExcludeFiles")
+                string_opts.remove('ExcludeFiles')
             if args.excludedirectories:
                 self.excludedirectories = args.excludedirectories
-                string_opts.remove("ExcludeDirectories")
+                string_opts.remove('ExcludeDirectories')
             if args.sockettimeout:
                 if args.sockettimeout > 0.0:
                     self.sockettimeout = args.sockettimeout
                 else:
-                    print("--sockettimeout|-t must not be negative ({}). "
-                          "Setting default to 300.0".format(args.sockettimeout),
+                    print('--sockettimeout|-t must not be negative ({}). '
+                          'Setting default to 300.0'.format(args.sockettimeout),
                           file=sys.stderr)
 
-                string_opts.remove("SocketTimeout")
+                string_opts.remove('SocketTimeout')
 
             # Optional string options
             for option in string_opts:
                 try:
-                    result = self.get("savacli", option)
-                    if option == "Socket":
+                    result = self.get('savacli', option)
+                    if option == 'Socket':
                         self.socket = result
-                    elif option == "LogFile":
-                        if result.lower() == "none":
+                    elif option == 'LogFile':
+                        if result.lower() == 'none':
                             self.logfile = None
                         else:
                             self.logfile = result
-                    elif option == "LogClasses":
-                        if "," in result:
-                            separator = ","
+                    elif option == 'LogClasses':
+                        if ',' in result:
+                            separator = ','
                         else:
                             separator = None
                         raw_options = result.split(separator)
-                        if "clean" in raw_options:
-                            self.logclasses.add("clean")
-                        if "infected" in raw_options:
-                            self.logclasses.add("infected")
-                        if "error" in raw_options:
-                            self.logclasses.add("error")
-                        if "all" in raw_options:
-                            self.logclasses = {"clean", "infected", "error"}
+                        if 'clean' in raw_options:
+                            self.logclasses.add('clean')
+                        if 'infected' in raw_options:
+                            self.logclasses.add('infected')
+                        if 'error' in raw_options:
+                            self.logclasses.add('error')
+                        if 'all' in raw_options:
+                            self.logclasses = {'clean', 'infected', 'error'}
                         if len(self.logclasses) == 0:
                             self.logfile = None
                             self.logclasses = None
-                    elif option == "ReportFormat":
-                        if result == "plain":
-                            self.reportformat = "plain"
-                        elif result == "json":
-                            self.reportformat = "json"
-                    elif option == "ExcludeFiles":
+                    elif option == 'ReportFormat':
+                        if result == 'plain':
+                            self.reportformat = 'plain'
+                        elif result == 'json':
+                            self.reportformat = 'json'
+                    elif option == 'ExcludeFiles':
                         # JSON allows all forms of file and directory names
-                        if result.startswith("[") and result.endswith("]"):
+                        if result.startswith('[') and result.endswith(']'):
                             try:
                                 self.excludefiles = json.loads(result)
                             except ValueError:
@@ -558,9 +558,9 @@ class Config(configparser.RawConfigParser):
                         else:
                             self.excludefiles = [
                                 f.strip() for f in result.split()]
-                    elif option == "ExcludeDirectories":
+                    elif option == 'ExcludeDirectories':
                         # JSON allows all forms of file and directory names
-                        if result.startswith("[") and result.endswith("]"):
+                        if result.startswith('[') and result.endswith(']'):
                             try:
                                 self.excludedirectories = json.loads(result)
                             except ValueError:
@@ -568,51 +568,51 @@ class Config(configparser.RawConfigParser):
                         else:
                             self.excludedirectories = [
                                 d.strip() for d in result.split()]
-                    elif option == "SocketTimeout":
+                    elif option == 'SocketTimeout':
                         try:
                             sockettimeout = float(result)
                         except ValueError:
                             sockettimeout = None
-                            print("{} is not a valid number for {}. "
-                                  "Setting default to 300.0".format(
+                            print('{} is not a valid number for {}. '
+                                  'Setting default to 300.0'.format(
                                 result, option), file=sys.stderr)
                         if sockettimeout and sockettimeout > 0.0:
                             self.sockettimeout = sockettimeout
                         else:
-                            print("{} must not be negative ({}). Setting "
-                                  "default to 300.0".format(option, result),
+                            print('{} must not be negative ({}). Setting '
+                                  'default to 300.0'.format(option, result),
                                   file=sys.stderr)
                 except configparser.NoOptionError:
                     pass
 
-            bool_opts = ["Local", "ReportHeader", "ReportSummary"]
+            bool_opts = ['Local', 'ReportHeader', 'ReportSummary']
 
             if args.local:
                 self.local = args.local
-                bool_opts.remove("Local")
+                bool_opts.remove('Local')
             if args.reportheader:
                 self.reportheader = args.reportheader
-                bool_opts.remove("ReportHeader")
+                bool_opts.remove('ReportHeader')
             if args.reportsummary:
                 self.reportsummary = args.reportsummary
-                bool_opts.remove("ReportSummary")
+                bool_opts.remove('ReportSummary')
 
             # Optional boolean options
             for option in bool_opts:
                 try:
-                    result = self.get("savacli", option)
-                    if result.lower() in ("yes", "true", "1", "on"):
+                    result = self.get('savacli', option)
+                    if result.lower() in ('yes', 'true', '1', 'on'):
                         result = True
-                    elif result.lower() in ("no", "false", "0", "off"):
+                    elif result.lower() in ('no', 'false', '0', 'off'):
                         result = False
                     else:
                         result = None
                     if result:
-                        if option == "Local":
+                        if option == 'Local':
                             self.local = result
-                        elif option == "ReportHeader":
+                        elif option == 'ReportHeader':
                             self.reportheader = result
-                        elif option == "ReportSummary":
+                        elif option == 'ReportSummary':
                             self.reportsummary = result
                 except configparser.NoOptionError:
                     pass
@@ -621,8 +621,8 @@ class Config(configparser.RawConfigParser):
             sys.exit(1)
 
         if self.socket is None:
-            print("Neither command line parameter --socket|-s "
-                  "nor config option Socket given")
+            print('Neither command line parameter --socket|-s '
+                  'nor config option Socket given')
             sys.exit(1)
 
         if self.local:
@@ -665,66 +665,66 @@ class ScanRecursiveList(object):
 
 def main():
     parser = argparse.ArgumentParser(
-        epilog=NAME + " SAVAPI command line scanner")
+        epilog=NAME + ' SAVAPI command line scanner')
 
-    parser.add_argument("--config",
-                        "-c",
-                        default="/etc/savapi/savacli.conf",
+    parser.add_argument('--config',
+                        '-c',
+                        default='/etc/savapi/savacli.conf',
                         type=str,
-                        help="load configuration options from this file")
-    parser.add_argument("--logfile",
-                        "-L",
+                        help='load configuration options from this file')
+    parser.add_argument('--logfile',
+                        '-L',
                         default=None,
                         type=str,
-                        help="to enable logging, specify a log file")
-    parser.add_argument("--input",
-                        "-i",
+                        help='to enable logging, specify a log file')
+    parser.add_argument('--input',
+                        '-i',
                         required=True,
                         type=str,
-                        nargs="+",
-                        help="give a file or a directory to scan")
-    parser.add_argument("--local",
-                        "-l",
+                        nargs='+',
+                        help='give a file or a directory to scan')
+    parser.add_argument('--local',
+                        '-l',
                         default=None,
-                        action="store_true",
-                        help="scanner and scanned files run on the same "
-                             "machine")
-    parser.add_argument("--recursive",
-                        "-r",
+                        action='store_true',
+                        help='scanner and scanned files run on the same '
+                             'machine')
+    parser.add_argument('--recursive',
+                        '-r',
                         default=False,
-                        action="store_true",
-                        help="if input is a directory, scan recursively")
-    parser.add_argument("--socket",
-                        "-s",
+                        action='store_true',
+                        help='if input is a directory, scan recursively')
+    parser.add_argument('--socket',
+                        '-s',
                         type=str,
-                        help="SAVAPI socket")
-    parser.add_argument("--sockettimeout",
-                        "-t",
+                        help='SAVAPI socket')
+    parser.add_argument('--sockettimeout',
+                        '-t',
                         default=None,
                         type=float,
-                        help="set a TCP socket timeout in seconds")
-    parser.add_argument("--reportheader",
-                        "-H",
-                        action="store_true",
+                        help='set a TCP socket timeout in seconds')
+    parser.add_argument('--reportheader',
+                        '-H',
+                        action='store_true',
                         default=None,
-                        help="report global runtime statistics")
-    parser.add_argument("--reportsummary",
-                        "-S",
-                        action="store_true",
+                        help='report global runtime statistics')
+    parser.add_argument('--reportsummary',
+                        '-S',
+                        action='store_true',
                         default=None,
-                        help="output summary statistics")
-    parser.add_argument("--excludefiles",
-                        "-f",
+                        help='output summary statistics')
+    parser.add_argument('--excludefiles',
+                        '-f',
                         type=str,
-                        nargs="*",
-                        help="exclude files from being scanned")
-    parser.add_argument("--excludedirectories",
-                        "-d",
+                        nargs='*',
+                        help='exclude files from being scanned')
+    parser.add_argument('--excludedirectories',
+                        '-d',
                         type=str,
-                        nargs="*",
-                        help="exclude directories from being scanned")
+                        nargs='*',
+                        help='exclude directories from being scanned')
     parser.add_argument('--version',
-                        "-v",
+                        '-v',
                         action='version',
                         version='%(prog)s ' + VERSION)
 
@@ -734,7 +734,7 @@ def main():
         global config
         config = Config(args)
     else:
-        print("Unable to access config file {}".format(args.config),
+        print('Unable to access config file {}'.format(args.config),
               file=sys.stderr)
         sys.exit(1)
 
@@ -751,7 +751,7 @@ def main():
             log_handler.setFormatter(formatter)
             logger.addHandler(log_handler)
         except Exception as e:
-            print("Can not turn on logging: {}".format(e))
+            print('Can not turn on logging: {}'.format(e))
             config.logclasses = None
     else:
         config.logclasses = None
@@ -764,13 +764,13 @@ def main():
     out = dict()
 
     if config.reportheader:
-        out["reportheader"] = scanner.report_header()
+        out['reportheader'] = scanner.report_header()
 
-    out["results"] = list()
+    out['results'] = list()
 
     if config.logclasses:
         # noinspection PyUnboundLocalVariable
-        logger.info("-" * 15 + " START " + "-" * 15)
+        logger.info('-' * 15 + ' START ' + '-' * 15)
 
     # 1. File is not on the local disk
     if not config.local:
@@ -778,7 +778,7 @@ def main():
             scanner.scan(infile)
             result = scanner.scan_result()
             if result:
-                out["results"].extend(result)
+                out['results'].extend(result)
     # 2. Scanner and files are on the same machine
     else:
         for infile in iter(args.input):
@@ -787,16 +787,16 @@ def main():
                     scanner.scan(infile)
                     result = scanner.scan_result()
                     if result:
-                        out["results"].extend(result)
+                        out['results'].extend(result)
             elif os.path.isdir(infile):
                 if args.recursive:
                     recursive_dir = ScanRecursiveList(infile)
                     for entry in iter(recursive_dir):
-                        entry_split = entry.split("/")[:-1]
+                        entry_split = entry.split('/')[:-1]
                         length_dir = len(entry_split)
                         skip = False
                         for excludedir in iter(config.excludedirectories):
-                            excludedir_split = excludedir.split("/")
+                            excludedir_split = excludedir.split('/')
                             length_excludedir = len(excludedir_split)
                             if length_excludedir <= length_dir:
                                 if entry_split[
@@ -810,84 +810,84 @@ def main():
                         scanner.scan(entry)
                         result = scanner.scan_result()
                         if result:
-                            out["results"].extend(result)
+                            out['results'].extend(result)
                 else:
                     if infile not in config.excludedirectories:
                         entries = os.listdir(infile)
                         for entry in iter(entries):
-                            path = infile + "/" + entry
+                            path = infile + '/' + entry
                             if os.path.isfile(path):
                                 scanner.scan(path)
                                 result = scanner.scan_result()
                                 if result:
-                                    out["results"].extend(result)
+                                    out['results'].extend(result)
 
     if config.reportsummary:
-        out["reportsummary"] = scanner.report_summary()
+        out['reportsummary'] = scanner.report_summary()
 
     scanner.close()
 
     if config.logclasses:
-        logger.info("-" * 15 + " END " + "-" * 15)
+        logger.info('-' * 15 + ' END ' + '-' * 15)
 
     # Display data structure
 
-    if config.reportformat == "plain":
+    if config.reportformat == 'plain':
         if config.reportheader:
-            print("Global information:")
-            print("-------------------")
+            print('Global information:')
+            print('-------------------')
 
-            if "date" in out["reportheader"]:
-                print("date: %s" % out["reportheader"]["date"])
-            if "product version" in out["reportheader"]:
-                print("product version: %s" %
-                      out["reportheader"]["product version"].decode("utf-8"))
-            if "engine version" in out["reportheader"]:
-                print("engine version: %s" %
-                      out["reportheader"]["engine " "version"].decode("utf-8"))
-            if "vdf version" in out["reportheader"]:
-                print("VDF version: %s" %
-                      out["reportheader"]["vdf version"].decode("utf-8"))
-            if "vdf signature count" in out["reportheader"]:
-                print("VDF signature count: %s" %
-                      out["reportheader"]["vdf signature count"].decode(
-                          "utf-8"))
-            if "expire" in out["reportheader"]:
-                print("license expire: %s" %
-                      out["reportheader"]["expire"].decode("utf-8"))
+            if 'date' in out['reportheader']:
+                print('date: %s' % out['reportheader']['date'])
+            if 'product version' in out['reportheader']:
+                print('product version: %s' %
+                      out['reportheader']['product version'].decode('utf-8'))
+            if 'engine version' in out['reportheader']:
+                print('engine version: %s' %
+                      out['reportheader']['engine ' 'version'].decode('utf-8'))
+            if 'vdf version' in out['reportheader']:
+                print('VDF version: %s' %
+                      out['reportheader']['vdf version'].decode('utf-8'))
+            if 'vdf signature count' in out['reportheader']:
+                print('VDF signature count: %s' %
+                      out['reportheader']['vdf signature count'].decode(
+                          'utf-8'))
+            if 'expire' in out['reportheader']:
+                print('license expire: %s' %
+                      out['reportheader']['expire'].decode('utf-8'))
 
-        if len(out["results"]) > 0:
+        if len(out['results']) > 0:
             if config.reportheader or config.reportsummary:
                 if config.reportheader:
                     print()
-                print("Scan results:")
-                print("-------------")
-            for alert in iter(out["results"]):
-                print("alert_name={alert_name} "
-                      "type={status} "
-                      "description={description} "
-                      "file={path}".format(**alert))
+                print('Scan results:')
+                print('-------------')
+            for alert in iter(out['results']):
+                print('alert_name={alert_name} '
+                      'type={status} '
+                      'description={description} '
+                      'file={path}'.format(**alert))
             if config.reportsummary:
                 print()
         if config.reportsummary:
-            if config.reportheader and len(out["results"]) == 0:
+            if config.reportheader and len(out['results']) == 0:
                 print()
-            print("Summary:")
-            print("--------")
+            print('Summary:')
+            print('--------')
 
-            print("total:", out["reportsummary"]["total"])
-            print("clean:", out["reportsummary"]["clean"])
-            print("infected:", out["reportsummary"]["infected"])
-            print("repairable:", out["reportsummary"]["repairable"])
-            print("not scanned:", out["reportsummary"]["not scanned"])
+            print('total:', out['reportsummary']['total'])
+            print('clean:', out['reportsummary']['clean'])
+            print('infected:', out['reportsummary']['infected'])
+            print('repairable:', out['reportsummary']['repairable'])
+            print('not scanned:', out['reportsummary']['not scanned'])
 
-    elif config.reportformat == "json":
+    elif config.reportformat == 'json':
         print(json.dumps(out))
 
     return scanner.exit()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     exit_code = main()
 
     if exit_code:
