@@ -9,26 +9,10 @@ savacli is licensed GPLv3.
 
 ## Usage
 
-Download the sources. savacli depends on Python's argparse package. On RedHat 6.5 (and CentOS) you will need to install it manually:
+Download the sources.
 
-``` sh
-# pip install argparse
-```
-
-As of version 0.3, you will also need the "future" package, which makes savacli Python2/3 compatible:
-
-``` sh
-# pip install future
-```
+Install [future](https://pypi.org/project/future/) first if you are using Python2. You should use Python3 because Python2 has end of life on 2020-01-01.
 
 Copy savacli.conf to /etc/savapi/savacli.conf and note the location of the logfile in savacli.conf.
 
 Unless you run savacli as root create the logfile and set permissions to let the user, who runs savacli, write to the file.
-
-## Installation on Debian 9
-
-Dependencies for Debian 9 "stretch"
-
-``` sh
-# apt install python-future python-configparser
-```
