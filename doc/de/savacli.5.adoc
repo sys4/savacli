@@ -107,7 +107,7 @@ Socket, +--socket+, +-s+::
 
     Socket = inet:127.0.0.1@4444
     Socket = inet6:[::1]@4444
-    Socket = unix:/var/run/savapi/savapi3
+    Socket = unix:/var/run/savapi/savapi
 
 +--version+, +-v+::
     Gibt die Versionsnummer der savacli aus.
