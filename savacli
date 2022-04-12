@@ -448,7 +448,7 @@ class Config(configparser.RawConfigParser):
         # Default configuration parameters
         self.product_id = None
         self.socket = None
-        self.sockettimeout = 300.0
+        self.sockettimeout = 600.0
         self.logfile = None
         self.logclasses = set()
         self.reportformat = 'plain'
@@ -510,7 +510,7 @@ class Config(configparser.RawConfigParser):
                     self.sockettimeout = args.sockettimeout
                 else:
                     print('--sockettimeout|-t must not be negative ({}). '
-                          'Setting default to 300.0'.format(args.sockettimeout),
+                          'Setting default to 600.0'.format(args.sockettimeout),
                           file=sys.stderr)
 
                 string_opts.remove('SocketTimeout')
@@ -574,13 +574,13 @@ class Config(configparser.RawConfigParser):
                         except ValueError:
                             sockettimeout = None
                             print('{} is not a valid number for {}. '
-                                  'Setting default to 300.0'.format(
+                                  'Setting default to 600.0'.format(
                                 result, option), file=sys.stderr)
                         if sockettimeout and sockettimeout > 0.0:
                             self.sockettimeout = sockettimeout
                         else:
                             print('{} must not be negative ({}). Setting '
-                                  'default to 300.0'.format(option, result),
+                                  'default to 600.0'.format(option, result),
                                   file=sys.stderr)
                 except configparser.NoOptionError:
                     pass
